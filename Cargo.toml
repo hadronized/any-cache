@@ -1,0 +1,13 @@
+[package]
+name = "any-cache"
+version = "0.1.0"
+license = "BSD-3-Clause"
+authors = ["Dimitri Sabadie <dimitri.sabadie@gmail.com>"]
+description = "Cache with string keys and any associated value"
+keywords = ["any", "cache"]
+
+homepage = "https://github.com/phaazon/any-cache"
+repository = "https://github.com/phaazon/any-cache"
+#documentation = "https://docs.rs/luminance"
+
+[dependencies]
