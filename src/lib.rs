@@ -26,13 +26,7 @@ impl Cache for HashCache {
   }
 
   fn get<T>(&self, key: &str) -> Option<&T> where T: Any + 'static {
-    match self.items.get(key) {
-      Some(any) => {
-        let any2: &Box<Any> = any;
-        any2.downcast_ref::<T>()
-      },
-      None => None
-    }
+    self.items.get(key).and_then(|a| { a.downcast_ref::<T>() })
   }
 
   fn remove(&mut self, key: &str) -> bool {
