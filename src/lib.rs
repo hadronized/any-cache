@@ -12,11 +12,17 @@ pub struct HashCache {
   items: HashMap<String, Box<Any>>
 }
 
-impl Default for HashCache {
-  fn default() -> Self {
+impl HashCache {
+  pub fn new() -> Self {
     HashCache {
       items: HashMap::new()
     }
+  }
+}
+
+impl Default for HashCache {
+  fn default() -> Self {
+    Self::new()
   }
 }
 
@@ -39,6 +45,12 @@ impl Cache for HashCache {
 }
 
 pub struct DummyCache;
+
+impl DummyCache {
+  pub fn new() -> Self {
+    DummyCache
+  }
+}
 
 impl Default for DummyCache {
   fn default() -> Self {
