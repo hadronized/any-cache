@@ -37,7 +37,7 @@ impl<K> Cache<K> for HashCache<K> where K: Eq + Hash {
   }
 
   fn remove<T>(&mut self, key: &K) -> Option<T> where T: Any + 'static {
-    self.items.remove(key).and_then(|any| any.downcast()
+    self.items.remove(key).and_then(|anybox| anybox.downcast().ok()).map(|b| *b)
   }
 
   fn clear(&mut self) {
@@ -68,7 +68,7 @@ impl<K> Cache<K> for DummyCache {
   }
 
   fn remove<T>(&mut self, _: &K) -> Option<T> where T: Any + 'static {
-    false
+    None
   }
 
   fn clear(&mut self) {
