@@ -5,7 +5,7 @@ use std::hash::Hash;
 pub trait Cache<K> {
   fn save<T>(&mut self, key: K, value: T) where T: Any + 'static;
   fn get<T>(&self, key: &K) -> Option<&T> where T: Any + 'static;
-  fn remove(&mut self, key: &K) -> bool;
+  fn remove<T>(&mut self, key: &K) -> Option<T> where T: Any + 'static;
   fn clear(&mut self);
 }
 
@@ -36,8 +36,8 @@ impl<K> Cache<K> for HashCache<K> where K: Eq + Hash {
     self.items.get(key).and_then(|a| { a.downcast_ref::<T>() })
   }
 
-  fn remove(&mut self, key: &K) -> bool {
-    self.items.remove(key).is_some()
+  fn remove<T>(&mut self, key: &K) -> Option<T> where T: Any + 'static {
+    self.items.remove(key).and_then(|any| any.downcast()
   }
 
   fn clear(&mut self) {
@@ -67,7 +67,7 @@ impl<K> Cache<K> for DummyCache {
     None
   }
 
-  fn remove(&mut self, _: &K) -> bool {
+  fn remove<T>(&mut self, _: &K) -> Option<T> where T: Any + 'static {
     false
   }
 
