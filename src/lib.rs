@@ -1,18 +1,19 @@
 use std::any::Any;
 use std::collections::HashMap;
+use std::hash::Hash;
 
-pub trait Cache {
-  fn save<T>(&mut self, key: &str, value: T) where T: Any + 'static;
-  fn get<T>(&self, key: &str) -> Option<&T> where T: Any + 'static;
-  fn remove(&mut self, key: &str) -> bool;
+pub trait Cache<K> {
+  fn save<T>(&mut self, key: K, value: T) where T: Any + 'static;
+  fn get<T>(&self, key: &K) -> Option<&T> where T: Any + 'static;
+  fn remove(&mut self, key: &K) -> bool;
   fn clear(&mut self);
 }
 
-pub struct HashCache {
-  items: HashMap<String, Box<Any>>
+pub struct HashCache<K> {
+  items: HashMap<K, Box<Any>>
 }
 
-impl HashCache {
+impl<K> HashCache<K> where K: Eq + Hash {
   pub fn new() -> Self {
     HashCache {
       items: HashMap::new()
@@ -20,22 +21,22 @@ impl HashCache {
   }
 }
 
-impl Default for HashCache {
+impl<K> Default for HashCache<K> where K: Eq + Hash {
   fn default() -> Self {
     Self::new()
   }
 }
 
-impl Cache for HashCache {
-  fn save<T>(&mut self, key: &str, value: T) where T: Any + 'static {
-    self.items.insert(key.to_owned(), Box::new(value));
+impl<K> Cache<K> for HashCache<K> where K: Eq + Hash {
+  fn save<T>(&mut self, key: K, value: T) where T: Any + 'static {
+    self.items.insert(key, Box::new(value));
   }
 
-  fn get<T>(&self, key: &str) -> Option<&T> where T: Any + 'static {
+  fn get<T>(&self, key: &K) -> Option<&T> where T: Any + 'static {
     self.items.get(key).and_then(|a| { a.downcast_ref::<T>() })
   }
 
-  fn remove(&mut self, key: &str) -> bool {
+  fn remove(&mut self, key: &K) -> bool {
     self.items.remove(key).is_some()
   }
 
@@ -58,15 +59,15 @@ impl Default for DummyCache {
   }
 }
 
-impl Cache for DummyCache {
-  fn save<T>(&mut self, _: &str, _: T) where T: Any + 'static {
+impl<K> Cache<K> for DummyCache {
+  fn save<T>(&mut self, _: K, _: T) where T: Any + 'static {
   }
 
-  fn get<T>(&self, _: &str) -> Option<&T> where T: Any + 'static {
+  fn get<T>(&self, _: &K) -> Option<&T> where T: Any + 'static {
     None
   }
 
-  fn remove(&mut self, _: &str) -> bool {
+  fn remove(&mut self, _: &K) -> bool {
     false
   }
 
