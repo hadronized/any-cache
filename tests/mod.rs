@@ -1,50 +1,75 @@
 extern crate any_cache;
 
-use any_cache::{Cache, HashCache};
+use any_cache::{Cache, CacheKey, HashCache};
 
-#[test]
-fn new_hash_cache_std_key() {
-  let _ = HashCache::<()>::new();
-  let _ = HashCache::<&'static str>::new();
-  let _ = HashCache::<String>::new();
+#[derive(Clone, Eq, Hash, PartialEq)]
+struct CustomKey(&'static str);
+
+impl CacheKey for CustomKey {
+  type Target = u32;
 }
 
+#[test]
+fn new_hash_cache() {
+  let _ = HashCache::new();
+}
+ 
 #[test]
 fn new_hash_cache_custom_key() {
-  #[derive(Eq, Hash, PartialEq)]
-  struct CustomKey;
+  let cache = HashCache::new();
 
-  let _ = HashCache::<CustomKey>::new();
+  assert_eq!(cache.get(&CustomKey("a")), None);
 }
+
 
 #[test]
 fn save() {
   let mut cache = HashCache::new();
 
-  cache.save("a", ());
-  cache.save("a", ());
-  cache.save("b", ());
-  cache.save("c", ());
+  cache.save(CustomKey("a"), 1);
+  cache.save(CustomKey("a"), 2);
+  cache.save(CustomKey("b"), 3);
+  cache.save(CustomKey("c"), 4);
 }
 
 #[test]
 fn save_get() {
   let mut cache = HashCache::new();
 
-  cache.save("key", "hey!");
-  assert_eq!(cache.get(&"key"), Some(&"hey!"));
+  let key = CustomKey("key");
+  cache.save(key.clone(), 42);
+
+  assert_eq!(cache.get(&key), Some(&42));
 }
 
 #[test]
 fn several_types_save_and_gotten() {
   let mut cache = HashCache::new();
 
-  cache.save("a", "hey!");
-  cache.save("b", 3);
-  cache.save("c", false);
+  #[derive(Clone, Eq, Hash, PartialEq)]
+  struct CustomKey2(u64);
+  
+  impl CacheKey for CustomKey2 {
+    type Target = bool;
+  }
+
+  #[derive(Clone, Eq, Hash, PartialEq)]
+  struct CustomKey3(String);
+  
+  impl CacheKey for CustomKey3 {
+    type Target = Option<String>;
+  }
+
+  let key1 = CustomKey("hey");
+  let key2 = CustomKey2(12);
+  let key3 = CustomKey3("foobar".to_owned());
+
+  cache.save(key1.clone(), 42);
+  cache.save(key2.clone(), false);
+  cache.save(key3.clone(), None);
 
 
-  assert_eq!(cache.get(&"a"), Some(&"hey!"));
-  assert_eq!(cache.get(&"b"), Some(&3));
-  assert_eq!(cache.get(&"c"), Some(&false));
+  assert_eq!(cache.get(&key1), Some(&42));
+  assert_eq!(cache.get(&key2), Some(&false));
+  assert_eq!(cache.get(&key3), Some(&None));
 }

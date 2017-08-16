@@ -1,19 +1,29 @@
 use std::any::Any;
-use std::collections::HashMap;
-use std::hash::Hash;
+use std::collections::hash_map::{DefaultHasher, HashMap};
+use std::hash::{Hash, Hasher};
 
-pub trait Cache<K> {
-  fn save<T>(&mut self, key: K, value: T) where T: Any + 'static;
-  fn get<T>(&self, key: &K) -> Option<&T> where T: Any + 'static;
-  fn remove<T>(&mut self, key: &K) -> Option<T> where T: Any + 'static;
+/// A cache that can store abitrary values and namespace them by key types.
+pub trait Cache {
+  fn save<K, T>(&mut self, key: K, value: T) where T: Any + 'static, K: CacheKey<Target = T>;
+  fn get<K, T>(&self, key: &K) -> Option<&T> where T: Any + 'static, K: CacheKey<Target = T>;
+  fn remove<K, T>(&mut self, key: &K) -> Option<T> where T: Any + 'static, K: CacheKey<Target = T>;
   fn clear(&mut self);
 }
 
-pub struct HashCache<K> {
-  items: HashMap<K, Box<Any>>
+/// A key that is usable in a cache.
+///
+/// Cache keys are required to declare the type of values they reference. This is needed to
+/// implement type-level namespacing.
+pub trait CacheKey: Hash {
+  type Target;
 }
 
-impl<K> HashCache<K> where K: Eq + Hash {
+/// An implementation of a cache with a `HashMap`.
+pub struct HashCache {
+  items: HashMap<u64, Box<Any>>
+}
+
+impl HashCache {
   pub fn new() -> Self {
     HashCache {
       items: HashMap::new()
@@ -21,23 +31,29 @@ impl<K> HashCache<K> where K: Eq + Hash {
   }
 }
 
-impl<K> Default for HashCache<K> where K: Eq + Hash {
+impl Default for HashCache {
   fn default() -> Self {
     Self::new()
   }
 }
 
-impl<K> Cache<K> for HashCache<K> where K: Eq + Hash {
-  fn save<T>(&mut self, key: K, value: T) where T: Any + 'static {
-    self.items.insert(key, Box::new(value));
+impl Cache for HashCache {
+  fn save<K, T>(&mut self, key: K, value: T) where T: Any + 'static, K: CacheKey<Target = T> {
+    let mut hasher = DefaultHasher::new();
+    key.hash(&mut hasher);
+    self.items.insert(hasher.finish(), Box::new(value));
   }
 
-  fn get<T>(&self, key: &K) -> Option<&T> where T: Any + 'static {
-    self.items.get(key).and_then(|a| { a.downcast_ref::<T>() })
+  fn get<K, T>(&self, key: &K) -> Option<&T> where T: Any + 'static, K: CacheKey<Target = T> {
+    let mut hasher = DefaultHasher::new();
+    key.hash(&mut hasher);
+    self.items.get(&hasher.finish()).and_then(|a| { a.downcast_ref::<T>() })
   }
 
-  fn remove<T>(&mut self, key: &K) -> Option<T> where T: Any + 'static {
-    self.items.remove(key).and_then(|anybox| anybox.downcast().ok()).map(|b| *b)
+  fn remove<K, T>(&mut self, key: &K) -> Option<T> where T: Any + 'static, K: CacheKey<Target = T> {
+    let mut hasher = DefaultHasher::new();
+    key.hash(&mut hasher);
+    self.items.remove(&hasher.finish()).and_then(|anybox| anybox.downcast().ok()).map(|b| *b)
   }
 
   fn clear(&mut self) {
@@ -45,6 +61,7 @@ impl<K> Cache<K> for HashCache<K> where K: Eq + Hash {
   }
 }
 
+/// An implementation of a cache that actually doesn’t cache at all.
 pub struct DummyCache;
 
 impl DummyCache {
@@ -59,15 +76,15 @@ impl Default for DummyCache {
   }
 }
 
-impl<K> Cache<K> for DummyCache {
-  fn save<T>(&mut self, _: K, _: T) where T: Any + 'static {
+impl Cache for DummyCache {
+  fn save<K, T>(&mut self, _: K, _: T) where T: Any + 'static, K: CacheKey<Target = T> {
   }
 
-  fn get<T>(&self, _: &K) -> Option<&T> where T: Any + 'static {
+  fn get<K, T>(&self, _: &K) -> Option<&T> where T: Any + 'static, K: CacheKey<Target = T> {
     None
   }
 
-  fn remove<T>(&mut self, _: &K) -> Option<T> where T: Any + 'static {
+  fn remove<K, T>(&mut self, _: &K) -> Option<T> where T: Any + 'static, K: CacheKey<Target = T> {
     None
   }
 
