@@ -1,12 +1,12 @@
-use std::any::Any;
+use std::any::{Any, TypeId};
 use std::collections::hash_map::{DefaultHasher, HashMap};
 use std::hash::{Hash, Hasher};
 
 /// A cache that can store abitrary values and namespace them by key types.
 pub trait Cache {
-  fn save<K, T>(&mut self, key: K, value: T) where T: Any + 'static, K: CacheKey<Target = T>;
-  fn get<K, T>(&self, key: &K) -> Option<&T> where T: Any + 'static, K: CacheKey<Target = T>;
-  fn remove<K, T>(&mut self, key: &K) -> Option<T> where T: Any + 'static, K: CacheKey<Target = T>;
+  fn save<K, T>(&mut self, key: K, value: T) where T: Any + 'static, K: 'static + CacheKey<Target = T>;
+  fn get<K, T>(&self, key: &K) -> Option<&T> where T: Any + 'static, K: 'static + CacheKey<Target = T>;
+  fn remove<K, T>(&mut self, key: &K) -> Option<T> where T: Any + 'static, K: 'static + CacheKey<Target = T>;
   fn clear(&mut self);
 }
 
@@ -38,21 +38,24 @@ impl Default for HashCache {
 }
 
 impl Cache for HashCache {
-  fn save<K, T>(&mut self, key: K, value: T) where T: Any + 'static, K: CacheKey<Target = T> {
+  fn save<K, T>(&mut self, key: K, value: T) where T: Any + 'static, K: 'static + CacheKey<Target = T> {
     let mut hasher = DefaultHasher::new();
     key.hash(&mut hasher);
+    TypeId::of::<K>().hash(&mut hasher);
     self.items.insert(hasher.finish(), Box::new(value));
   }
 
-  fn get<K, T>(&self, key: &K) -> Option<&T> where T: Any + 'static, K: CacheKey<Target = T> {
+  fn get<K, T>(&self, key: &K) -> Option<&T> where T: Any + 'static, K: 'static + CacheKey<Target = T> {
     let mut hasher = DefaultHasher::new();
     key.hash(&mut hasher);
+    TypeId::of::<K>().hash(&mut hasher);
     self.items.get(&hasher.finish()).and_then(|a| { a.downcast_ref::<T>() })
   }
 
-  fn remove<K, T>(&mut self, key: &K) -> Option<T> where T: Any + 'static, K: CacheKey<Target = T> {
+  fn remove<K, T>(&mut self, key: &K) -> Option<T> where T: Any + 'static, K: 'static + CacheKey<Target = T> {
     let mut hasher = DefaultHasher::new();
     key.hash(&mut hasher);
+    TypeId::of::<K>().hash(&mut hasher);
     self.items.remove(&hasher.finish()).and_then(|anybox| anybox.downcast().ok()).map(|b| *b)
   }
 
