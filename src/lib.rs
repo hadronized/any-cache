@@ -4,9 +4,9 @@ use std::hash::{Hash, Hasher};
 
 /// A cache that can store abitrary values and namespace them by key types.
 pub trait Cache {
-  fn save<K, T>(&mut self, key: K, value: T) where T: Any + 'static, K: 'static + CacheKey<Target = T>;
-  fn get<K, T>(&self, key: &K) -> Option<&T> where T: Any + 'static, K: 'static + CacheKey<Target = T>;
-  fn remove<K, T>(&mut self, key: &K) -> Option<T> where T: Any + 'static, K: 'static + CacheKey<Target = T>;
+  fn save<K>(&mut self, key: K, value: K::Target) where K::Target: Any + 'static, K: 'static + CacheKey;
+  fn get<K>(&self, key: &K) -> Option<&K::Target> where K::Target: Any + 'static, K: 'static + CacheKey;
+  fn remove<K>(&mut self, key: &K) -> Option<K::Target> where K::Target: Any + 'static, K: 'static + CacheKey;
   fn clear(&mut self);
 }
 
@@ -38,21 +38,21 @@ impl Default for HashCache {
 }
 
 impl Cache for HashCache {
-  fn save<K, T>(&mut self, key: K, value: T) where T: Any + 'static, K: 'static + CacheKey<Target = T> {
+  fn save<K>(&mut self, key: K, value: K::Target) where K::Target: Any + 'static, K: 'static + CacheKey {
     let mut hasher = DefaultHasher::new();
     key.hash(&mut hasher);
     TypeId::of::<K>().hash(&mut hasher);
     self.items.insert(hasher.finish(), Box::new(value));
   }
 
-  fn get<K, T>(&self, key: &K) -> Option<&T> where T: Any + 'static, K: 'static + CacheKey<Target = T> {
+  fn get<K>(&self, key: &K) -> Option<&K::Target> where K::Target: Any + 'static, K: 'static + CacheKey {
     let mut hasher = DefaultHasher::new();
     key.hash(&mut hasher);
     TypeId::of::<K>().hash(&mut hasher);
-    self.items.get(&hasher.finish()).and_then(|a| { a.downcast_ref::<T>() })
+    self.items.get(&hasher.finish()).and_then(|a| { a.downcast_ref::<K::Target>() })
   }
 
-  fn remove<K, T>(&mut self, key: &K) -> Option<T> where T: Any + 'static, K: 'static + CacheKey<Target = T> {
+  fn remove<K>(&mut self, key: &K) -> Option<K::Target> where K::Target: Any + 'static, K: 'static + CacheKey {
     let mut hasher = DefaultHasher::new();
     key.hash(&mut hasher);
     TypeId::of::<K>().hash(&mut hasher);
@@ -80,14 +80,14 @@ impl Default for DummyCache {
 }
 
 impl Cache for DummyCache {
-  fn save<K, T>(&mut self, _: K, _: T) where T: Any + 'static, K: CacheKey<Target = T> {
+  fn save<K>(&mut self, _: K, _: K::Target) where K::Target: Any + 'static, K: 'static + CacheKey {
   }
 
-  fn get<K, T>(&self, _: &K) -> Option<&T> where T: Any + 'static, K: CacheKey<Target = T> {
+  fn get<K>(&self, _: &K) -> Option<&K::Target> where K::Target: Any + 'static, K: 'static + CacheKey {
     None
   }
 
-  fn remove<K, T>(&mut self, _: &K) -> Option<T> where T: Any + 'static, K: CacheKey<Target = T> {
+  fn remove<K>(&mut self, _: &K) -> Option<K::Target> where K::Target: Any + 'static, K: 'static + CacheKey {
     None
   }
 

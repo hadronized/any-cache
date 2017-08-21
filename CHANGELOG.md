@@ -1,3 +1,9 @@
+## 0.2.2
+
+> *07/21/2017*
+
+- Simplified the type system used for associated target.
+
 ## 0.2.1
 
 > *07/18/2017*
