@@ -1,3 +1,9 @@
+## 0.2.3
+
+> *07/21/2017*
+
+Moved `'static` lifetime from `Cache::*` function to `CacheKey` super traits.
+
 ## 0.2.2
 
 > *07/21/2017*
